@@ -2,8 +2,8 @@
 CREATE TABLE ghs_classifications (
     id SERIAL PRIMARY KEY,
     code VARCHAR(20) UNIQUE NOT NULL,       -- Contoh: 'FLAM_LIQ_2', 'TOX_ACUTE_1'
-    category_name VARCHAR(100) NOT NULL,     -- Contoh: 'Flammable Liquids Cat. 2'
-    pictogram_symbol VARCHAR(50),            -- Contoh: 'flame.png'
+    category_name VARCHAR(100) NOT NULL,    -- Contoh: 'Flammable Liquids Cat. 2'
+    pictogram_symbol VARCHAR(50),           -- Contoh: 'flame.png'
     signal_word VARCHAR(20) CHECK (signal_word IN ('DANGER', 'WARNING', 'NONE'))
 );
 
@@ -14,10 +14,10 @@ CREATE TABLE materials (
     name VARCHAR(255) NOT NULL,
     chemical_formula VARCHAR(100),
     ghs_classification_id INT REFERENCES ghs_classifications(id),
-    unit VARCHAR(20) NOT NULL,               -- 'mL', 'g', 'L', 'kg'
+    unit VARCHAR(20) NOT NULL,              -- 'mL', 'g', 'L', 'kg'
     min_stock_alert DECIMAL(12,2) DEFAULT 0.00,
     
-    -- DENORMALISASI 1: Caching total stok untuk kecepatan query Dashboard (menghindari SUM pada tabel log)
+    -- DENORMALISASI 1: Caching total stok untuk kecepatan query Dashboard 
     total_available_stock DECIMAL(12,2) DEFAULT 0.00,
     
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -49,7 +49,7 @@ CREATE TABLE storage_locations (
 -- 5. UNIT BOTOL / WADAH FISIK (Inventory Unit) (3NF)
 CREATE TABLE inventory_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    qr_code VARCHAR(100) UNIQUE NOT NULL,   -- UUID / Unique String yang ada pada QR Code
+    qr_code VARCHAR(100) UNIQUE NOT NULL,   -- UUID / Unique String pada QR Code
     material_id UUID NOT NULL REFERENCES materials(id),
     location_id UUID REFERENCES storage_locations(id),
     batch_number VARCHAR(100),
@@ -65,16 +65,26 @@ CREATE TABLE inventory_items (
 CREATE TABLE stock_audit_logs (
     id BIGSERIAL PRIMARY KEY,
     inventory_item_id UUID REFERENCES inventory_items(id) ON DELETE SET NULL,
-    user_id UUID NOT NULL,                  -- ID Pengguna yang melakukan tindakan
-    experiment_id VARCHAR(100) NOT NULL,    -- ID Eksperimen / Kegiatan
+    
+    -- [UPDATE TERBARU]: Relasi Foreign Key ke tabel users (Bisa NULL jika akun dihapus)
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL, 
+    
+    -- [UPDATE TERBARU]: Kategori kegiatan statis untuk UI/UX Scanner yang lebih cepat
+    activity_category VARCHAR(50) NOT NULL CHECK (activity_category IN (
+        'PRAKTIKUM', 
+        'PERSIAPAN_REAGEN', 
+        'PENELITIAN', 
+        'PENGUJIAN_SAMPEL',
+        'MAINTENANCE_ALAT',
+        'LAINNYA'
+    )),
+    
     action_type VARCHAR(20) NOT NULL CHECK (action_type IN ('USAGE', 'RESTOCK', 'ADJUSTMENT', 'DISPOSAL')),
-    quantity_changed DECIMAL(12,2) NOT NULL, -- Minus (-) untuk penggunaan, Plus (+) untuk restock
+    quantity_changed DECIMAL(12,2) NOT NULL, 
     quantity_before DECIMAL(12,2) NOT NULL,
     quantity_after DECIMAL(12,2) NOT NULL,
     
-    -- DENORMALISASI 2 (Integritas Audit ISO 17025):
-    -- Mengunci snapshot nama bahan & user saat transaksi terjadi.
-    -- Mencegah riwayat audit berubah jika nama bahan di master data diedit/dihapus di kemudian hari.
+    -- Denormalisasi Snapshot (Dikunci secara permanen oleh Backend saat transaksi)
     material_name_snapshot VARCHAR(255) NOT NULL,
     user_name_snapshot VARCHAR(100) NOT NULL,
     
@@ -86,12 +96,16 @@ CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     nip VARCHAR(50) UNIQUE,              -- Login Pengguna Lab
-    email VARCHAR(255) UNIQUE,            -- Login Admin
+    email VARCHAR(255) UNIQUE,           -- Login Admin
     pin VARCHAR(255),                    -- Hash PIN 4-digit Pengguna Lab
     password VARCHAR(255),               -- Hash Password Admin
     role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'USER_LAB')),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ==========================================
+-- INDEXING UNTUK OPTIMASI PERFORMA BACKEND
+-- ==========================================
 
 -- Indeks pencarian cepat untuk QR Code Scanner
 CREATE INDEX idx_inventory_qr_code ON inventory_items(qr_code);
