@@ -81,6 +81,18 @@ CREATE TABLE stock_audit_logs (
     timestamp TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+-- 7. TABEL USERS (Admin & Pengguna Lab)
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    nip VARCHAR(50) UNIQUE,              -- Login Pengguna Lab
+    email VARCHAR(255) UNIQUE,            -- Login Admin
+    pin VARCHAR(255),                    -- Hash PIN 4-digit Pengguna Lab
+    password VARCHAR(255),               -- Hash Password Admin
+    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'USER_LAB')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Indeks pencarian cepat untuk QR Code Scanner
 CREATE INDEX idx_inventory_qr_code ON inventory_items(qr_code);
 
