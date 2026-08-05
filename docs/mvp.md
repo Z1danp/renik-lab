@@ -26,6 +26,9 @@ Catatan riwayat lengkap yang tidak bisa dibuah atau dihapus (Immutable log)
 * Tabel riwayat transaksi yang mencatat secara otomatis: Siapa saja yang mengambil, Bahan apa, berapa banyak, kapan (Timestamp), dan untuk Proyek/Eksperimen apa
 * Fitur untuk mengekspor riwayat ini ke format CSV/Excel untuk kebutuhan pelaporan audit
 
+### 6. Keamanan Akun & Non-Repudiation (ISO 17025)
+
+Untuk menjamin integritas riwayat penggunaan, sistem menerapkan sistem hashing pada PIN dan mekanisme Force Change PIN. Pengguna baru atau pengguna yang PIN-nya di-reset oleh Admin diwajibkan untuk mengganti PIN sementara mereka dengan PIN rahasia saat login pertama kali, sehingga admin tidak memiliki akses ke akun pengguna lab.
 
 alurnya:
 

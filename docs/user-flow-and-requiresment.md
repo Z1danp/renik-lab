@@ -6,13 +6,15 @@
 flowchart TD
     subgraph UserSection ["Alur Pengguna Lab"]
         U1["Pengguna Lab"] --> U2["Login NIP/NIM + PIN"]
-        U2 --> U3["Homepage: Katalog & Stok Bahan"]
-        U2 -- "Scan QR Botol via HP/Web" --> U4["Halaman Detail & Form Pemakaian Bahan"]
-
-        U4 --> U4A["Info Detail & Lokasi Rak"]
-        U4 --> U4B["Warning Inkompatibilitas OSHA (Jika Ada)"]
-        U4 --> U4C["Validasi: Blokir Form Jika Status = EXPIRED"]
-        U4 --> U4D["Form Catat: Qty & Dropdown Kategori Kegiatan"]
+        U2 --> U2A{"Cek must_change_pin?"}
+        
+        U2A -- "Ya (TRUE)" --> U2B["Halaman Wajib Ganti PIN"]
+        U2B --> U3
+        
+        U2A -- "Tidak (FALSE)" --> U3["Homepage: Katalog & Stok Bahan"]
+        U3 -- "Scan QR Botol via HP/Web" --> U4["Halaman Detail & Form Pemakaian Bahan"]
+        
+        %% (Sisa flow sama seperti sebelumnya)
     end
 
     subgraph AdminSection ["Alur Admin Lab"]
@@ -46,6 +48,10 @@ flowchart TD
 
 - **Fitur Scan:** Terdapat tombol/scanner khusus untuk memindai stiker QR Code.
 
+**3. Layar Wajib Ganti PIN (Force Change PIN):**
+- **Trigger**: Muncul otomatis setelah login jika status `must_change_pin = TRUE`. Pengguna tidak bisa mengakses halaman lain (Katalog/Scan) sebelum menyelesaikan form ini.
+- **Form**: Terdiri dari 2 input: "PIN Baru (4 Digit)" dan "Konfirmasi PIN Baru".
+- **Action**: Saat disubmit, sistem akan memperbarui hash PIN di database, mengubah must_change_pin menjadi FALSE, lalu me-redirect pengguna ke Homepage
 ---
 
 ## Wireframe 2: Halaman Scan QR & Form Pemakaian

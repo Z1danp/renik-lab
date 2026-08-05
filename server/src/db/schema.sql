@@ -100,6 +100,7 @@ CREATE TABLE users (
     pin VARCHAR(255),                    -- Hash PIN 4-digit Pengguna Lab
     password VARCHAR(255),               -- Hash Password Admin
     role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'USER_LAB')),
+    must_change_pin BOOLEAN DEFAULT TRUE, -- [UPDATE]: Flag untuk force ganti PIN
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
