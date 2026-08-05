@@ -8,12 +8,12 @@ CREATE TABLE ghs_classifications (
 );
 
 -- 2. MASTER DATA BAHAN KIMIA (3NF + Denormalisasi Stok)
+-- [UPDATE]: Kolom ghs_classification_id dihapus dari sini
 CREATE TABLE materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cas_number VARCHAR(20) UNIQUE,
     name VARCHAR(255) NOT NULL,
     chemical_formula VARCHAR(100),
-    ghs_classification_id INT REFERENCES ghs_classifications(id),
     unit VARCHAR(20) NOT NULL,              -- 'mL', 'g', 'L', 'kg'
     min_stock_alert DECIMAL(12,2) DEFAULT 0.00,
     
@@ -24,7 +24,17 @@ CREATE TABLE materials (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. OSHA SAFETY COMPATIBILITY MATRIX (3NF)
+-- 3. JUNCTION TABLE: MANY-TO-MANY MATERIALS & GHS (NEW)
+-- [UPDATE]: Tabel pivot untuk menghubungkan bahan dengan banyak klasifikasi GHS
+CREATE TABLE material_ghs_classifications (
+    material_id UUID NOT NULL REFERENCES materials(id) ON DELETE CASCADE,
+    ghs_classification_id INT NOT NULL REFERENCES ghs_classifications(id) ON DELETE CASCADE,
+    
+    -- Composite Primary Key mencegah duplikasi GHS yang sama di satu bahan
+    PRIMARY KEY (material_id, ghs_classification_id)
+);
+
+-- 4. OSHA SAFETY COMPATIBILITY MATRIX (3NF)
 CREATE TABLE osha_incompatibility_rules (
     id SERIAL PRIMARY KEY,
     class_a_id INT NOT NULL REFERENCES ghs_classifications(id) ON DELETE CASCADE,
@@ -37,7 +47,7 @@ CREATE TABLE osha_incompatibility_rules (
     CONSTRAINT unique_rule_pair UNIQUE (class_a_id, class_b_id)
 );
 
--- 4. MASTER DATA LOKASI PENYIMPANAN (3NF)
+-- 5. MASTER DATA LOKASI PENYIMPANAN (3NF)
 CREATE TABLE storage_locations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     room_name VARCHAR(100) NOT NULL,        -- Contoh: "Lab Kimia Organik 1"
@@ -46,7 +56,7 @@ CREATE TABLE storage_locations (
     description TEXT
 );
 
--- 5. UNIT BOTOL / WADAH FISIK (Inventory Unit) (3NF)
+-- 6. UNIT BOTOL / WADAH FISIK (Inventory Unit) (3NF)
 CREATE TABLE inventory_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     qr_code VARCHAR(100) UNIQUE NOT NULL,   -- UUID / Unique String pada QR Code
@@ -61,15 +71,12 @@ CREATE TABLE inventory_items (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. IMMUTABLE AUDIT TRAIL ISO 17025 (3NF + Denormalisasi Audit)
+-- 7. IMMUTABLE AUDIT TRAIL ISO 17025 (3NF + Denormalisasi Audit)
 CREATE TABLE stock_audit_logs (
     id BIGSERIAL PRIMARY KEY,
     inventory_item_id UUID REFERENCES inventory_items(id) ON DELETE SET NULL,
-    
-    -- [UPDATE TERBARU]: Relasi Foreign Key ke tabel users (Bisa NULL jika akun dihapus)
     user_id UUID REFERENCES users(id) ON DELETE SET NULL, 
     
-    -- [UPDATE TERBARU]: Kategori kegiatan statis untuk UI/UX Scanner yang lebih cepat
     activity_category VARCHAR(50) NOT NULL CHECK (activity_category IN (
         'PRAKTIKUM', 
         'PERSIAPAN_REAGEN', 
@@ -84,14 +91,14 @@ CREATE TABLE stock_audit_logs (
     quantity_before DECIMAL(12,2) NOT NULL,
     quantity_after DECIMAL(12,2) NOT NULL,
     
-    -- Denormalisasi Snapshot (Dikunci secara permanen oleh Backend saat transaksi)
+    -- Denormalisasi Snapshot
     material_name_snapshot VARCHAR(255) NOT NULL,
     user_name_snapshot VARCHAR(100) NOT NULL,
     
     timestamp TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
--- 7. TABEL USERS (Admin & Pengguna Lab)
+-- 8. TABEL USERS (Admin & Pengguna Lab)
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
@@ -100,7 +107,7 @@ CREATE TABLE users (
     pin VARCHAR(255),                    -- Hash PIN 4-digit Pengguna Lab
     password VARCHAR(255),               -- Hash Password Admin
     role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'USER_LAB')),
-    must_change_pin BOOLEAN DEFAULT TRUE, -- [UPDATE]: Flag untuk force ganti PIN
+    must_change_pin BOOLEAN DEFAULT TRUE, 
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -119,3 +126,6 @@ CREATE INDEX idx_inventory_location ON inventory_items(location_id);
 
 -- Indeks Log Audit berdasarkan Item dan Tanggal
 CREATE INDEX idx_audit_logs_item_timestamp ON stock_audit_logs(inventory_item_id, timestamp DESC);
+
+-- [UPDATE]: Indeks untuk mempercepat query JOIN GHS pada material
+CREATE INDEX idx_material_ghs_material_id ON material_ghs_classifications(material_id);

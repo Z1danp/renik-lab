@@ -21,9 +21,11 @@ flowchart TD
         A1["Admin Lab"] --> A2["Login Admin"]
         A2 --> A3["Dashboard Admin"]
 
-        A3 --> A3A["Manajemen Stok & Cetak QR Code"]
-        A3 --> A3B["Audit Log Pemakaian (+ Export CSV/Excel)"]
-        A3 --> A3C["Manajemen User (Tambah NIP & PIN)"]
+        A3 --> A3A["Manajemen Master Data Bahan (CRUD Materials + GHS)"]
+        A3 --> A3B["Manajemen Stok & Cetak QR Code (CRUD Inventory + Safety Engine)"]
+        A3 --> A3C["Audit Log Pemakaian (+ Export CSV/Excel)"]
+        A3 --> A3D["Manajemen User (CRUD Users: Tambah, Edit, Reset PIN, Hapus)"]
+        A3 --> A3E["Manajemen Lokasi Penyimpanan (CRUD Storage Locations)"]
     end
 
 ```
@@ -88,8 +90,12 @@ flowchart TD
 
 **3. Fitur Management:**
 
-- **Stok & QR Code:** Terdapat form CRUD bahan kimia, fasilitas _upload_ data, dan tombol cetak stiker QR Code. Sistem memiliki _Safety Engine_ yang akan memblokir (_alert_) penyimpanan jika bahan diletakkan di rak/lokasi yang melanggar matriks inkompatibilitas keselamatan OSHA.
+- **Master Data Bahan (CRUD Materials):** Admin dapat menambah, mengedit, melihat detail, dan menghapus data bahan kimia. Setiap bahan memiliki atribut Nama, Rumus Kimia, Nomor CAS, Satuan, Batas Stok Minimum, dan klasifikasi GHS (multi-select dari referensi GHS). Penghapusan dibatasi jika masih ada botol aktif.
+
+- **Stok & Inventori (CRUD Inventory):** Admin dapat mendaftarkan botol/wadah fisik baru, termasuk memilih material, lokasi penyimpanan, kuantitas awal, nomor batch, dan tanggal kadaluarsa. Sistem memiliki **Safety Engine** yang akan memblokir penyimpanan jika bahan diletakkan di rak/lokasi yang melanggar matriks inkompatibilitas keselamatan OSHA. QR Code otomatis dibuat saat item baru didaftarkan dan dapat dicetak sebagai stiker. Admin juga dapat melakukan restock, adjustment, pemindahan lokasi, dan disposal item.
 
 - **Audit Log:** Tabel riwayat transaksi _immutable_ yang mencatat Siapa pengguna lab, Kategori Kegiatan, Bahan yang dipakai, Jumlah perubahan stok, dan Timestamp kejadian. Terdapat tombol Export ke CSV/Excel untuk mempermudah pelaporan audit.
 
-- **Manajemen User:** Form untuk mendaftarkan Pengguna Lab baru yang membutuhkan input Nama, NIP/NIM, dan PIN 4-digit
+- **Manajemen User (CRUD Users):** Admin dapat menambah, mengedit, melihat detail, dan menghapus pengguna (baik Admin maupun Pengguna Lab). Untuk pengguna lab baru, input Nama, NIP/NIM, dan PIN 4-digit. Admin dapat me-reset PIN pengguna lab; saat PIN di-reset, flag `must_change_pin` diaktifkan kembali sehingga pengguna wajib ganti PIN saat login berikutnya (non-repudiation ISO 17025).
+
+- **Manajemen Lokasi Penyimpanan (CRUD Storage Locations):** Admin dapat menambah, mengedit, dan menghapus lokasi penyimpanan (Ruangan, Lemari, Rak). Penghapusan dibatasi jika masih ada item inventori aktif di lokasi tersebut.
