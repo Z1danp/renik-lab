@@ -1,0 +1,30 @@
+{
+  "name": "renik-lab-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/server/src/index.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5",
+    "cookie-parser": "^1",
+    "cors": "^2",
+    "express": "^5",
+    "jsonwebtoken": "^9",
+    "qrcode": "^1",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5",
+    "@types/cookie-parser": "^1",
+    "@types/cors": "^2",
+    "@types/express": "^5",
+    "@types/jsonwebtoken": "^9",
+    "@types/qrcode": "^1",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
